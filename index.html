@@ -195,10 +195,26 @@ function playSound(type) {
 
 // --- INPUT ---
 const keys = {};
-let shiftJustPressed = false;
+function barrelRoll(dir) {
+  if (!player.rolling && player.rollCooldown <= 0 && dir !== 0) {
+    player.rolling = true;
+    player.rollTimer = player.rollDuration;
+    player.rollDir = dir;
+    player.invincible = Math.max(player.invincible, player.rollDuration + 5);
+    playSound('roll');
+  }
+}
 window.addEventListener('keydown', e => {
+  const shiftHeld = keys['ShiftLeft'] || keys['ShiftRight'];
+  const left = e.code === 'ArrowLeft' || e.code === 'KeyA';
+  const right = e.code === 'ArrowRight' || e.code === 'KeyD';
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
-    if (!keys['ShiftLeft'] && !keys['ShiftRight']) shiftJustPressed = true;
+    if (!keys['ShiftLeft'] && !keys['ShiftRight']) {
+      if (keys['ArrowLeft'] || keys['KeyA']) barrelRoll(-1);
+      else if (keys['ArrowRight'] || keys['KeyD']) barrelRoll(1);
+    }
+  } else if (left || right) {
+    if (shiftHeld) barrelRoll(left ? -1 : 1);
   }
   keys[e.code] = true;
   if (e.code === 'Space') e.preventDefault();
@@ -233,8 +249,10 @@ function drawOcean(t) {
   ctx.strokeStyle = 'rgba(100,180,255,0.1)';
   ctx.lineWidth = 1.5;
   for (const w of waves) {
-    w.y += w.speed;
-    if (w.y > H + 10) { w.y = -10; w.x = Math.random() * W; }
+    if (state !== 'paused') {
+      w.y += w.speed;
+      if (w.y > H + 10) { w.y = -10; w.x = Math.random() * W; }
+    }
     ctx.beginPath();
     for (let i = 0; i < w.width; i += 4) {
       const wx = w.x + i, wy = w.y + Math.sin(t * 0.002 + w.phase + i * 0.08) * 3;
@@ -250,8 +268,10 @@ function drawOcean(t) {
 
 function drawClouds() {
   for (const c of clouds) {
-    c.y += c.speed;
-    if (c.y > H + 30) { c.y = -30; c.x = Math.random() * W; }
+    if (state !== 'paused') {
+      c.y += c.speed;
+      if (c.y > H + 30) { c.y = -30; c.x = Math.random() * W; }
+    }
     ctx.save();
     ctx.globalAlpha = c.o;
     ctx.fillStyle = '#c8d8e8';
@@ -264,8 +284,10 @@ function drawClouds() {
 
 function drawIslands() {
   for (const isl of islands) {
-    isl.y += isl.speed;
-    if (isl.y > H + 30) { isl.y = -30; isl.x = Math.random() * W; }
+    if (state !== 'paused') {
+      isl.y += isl.speed;
+      if (isl.y > H + 30) { isl.y = -30; isl.x = Math.random() * W; }
+    }
     ctx.save();
     ctx.globalAlpha = 0.3;
     ctx.fillStyle = '#c8b070';
@@ -277,11 +299,11 @@ function drawIslands() {
 }
 
 // --- PLAYER: P-38 LIGHTNING ---
-function drawPlayerPlane(x, y, invincible, rollAngle) {
+function drawPlayerPlane(x, y, invincible, rollAngle, t) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(rollAngle);
-  if (invincible && Math.floor(Date.now() / 100) % 2 === 0) ctx.globalAlpha = 0.3;
+  if (invincible && Math.floor(t / 100) % 2 === 0) ctx.globalAlpha = 0.3;
 
   // Shadow
   ctx.fillStyle = 'rgba(0,0,0,0.12)';
@@ -324,7 +346,7 @@ function drawPlayerPlane(x, y, invincible, rollAngle) {
   ctx.beginPath(); ctx.ellipse(18, 6, 4, 6, 0, 0, Math.PI * 2); ctx.fill();
 
   // Props
-  const pp = Date.now() * 0.03;
+  const pp = t * 0.03;
   ctx.strokeStyle = 'rgba(180,180,160,0.45)'; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.ellipse(-18, 6, 8, 3, pp, 0, Math.PI * 2); ctx.stroke();
   ctx.beginPath(); ctx.ellipse(18, 6, 8, 3, -pp, 0, Math.PI * 2); ctx.stroke();
@@ -340,7 +362,7 @@ function drawPlayerPlane(x, y, invincible, rollAngle) {
   ctx.beginPath(); ctx.arc(14, 7, 1.8, 0, Math.PI * 2); ctx.fill();
 
   // Exhaust
-  ctx.globalAlpha = invincible && Math.floor(Date.now() / 100) % 2 === 0 ? 0.1 : 0.25;
+  ctx.globalAlpha = invincible && Math.floor(t / 100) % 2 === 0 ? 0.1 : 0.25;
   ctx.fillStyle = '#aaa';
   const exLen = 6 + Math.random() * 4;
   ctx.fillRect(-17, 22, 2, exLen);
@@ -363,7 +385,7 @@ function drawMiniPlane(cx, cy, s) {
 }
 
 // --- ENEMY PLANES: JAPANESE ZEROS ---
-function drawZero(x, y, type, hitFlash, angle) {
+function drawZero(x, y, type, hitFlash, angle, t) {
   ctx.save();
   ctx.translate(x, y);
   if (angle) ctx.rotate(angle);
@@ -401,7 +423,7 @@ function drawZero(x, y, type, hitFlash, angle) {
     ctx.fillStyle = '#cc2222'; ctx.beginPath(); ctx.arc(14, 7, 1.8, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#888'; ctx.beginPath(); ctx.moveTo(0, -16); ctx.lineTo(-3, -12); ctx.lineTo(3, -12); ctx.closePath(); ctx.fill();
     ctx.fillStyle = '#556'; ctx.beginPath(); ctx.ellipse(0, -6, 4, 5, 0, 0, Math.PI * 2); ctx.fill();
-    const pp = Date.now() * 0.04;
+    const pp = t * 0.04;
     ctx.strokeStyle = 'rgba(100,100,90,0.45)'; ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.ellipse(0, -16, 7, 2, pp, 0, Math.PI * 2); ctx.stroke();
   } else {
@@ -419,7 +441,7 @@ function drawZero(x, y, type, hitFlash, angle) {
     // Nose
     ctx.fillStyle = '#888'; ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(-3, -10); ctx.lineTo(3, -10); ctx.closePath(); ctx.fill();
     ctx.fillStyle = '#556'; ctx.beginPath(); ctx.ellipse(0, -5, 3.5, 4, 0, 0, Math.PI * 2); ctx.fill();
-    const pp = Date.now() * 0.035;
+    const pp = t * 0.035;
     ctx.strokeStyle = 'rgba(100,100,90,0.4)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.ellipse(0, -14, 6, 2, pp, 0, Math.PI * 2); ctx.stroke();
     ctx.fillStyle = gray;
@@ -492,9 +514,9 @@ function drawExplosion(ex) {
 }
 
 // --- POWER-UPS ---
-function drawPowerUpItem(p) {
+function drawPowerUpItem(p, t) {
   ctx.save();
-  const bob = Math.sin(Date.now() / 300) * 3;
+  const bob = Math.sin(t / 300) * 3;
   const y = p.y + bob;
   // Crate
   ctx.fillStyle = '#8a7a5a';
@@ -515,7 +537,7 @@ function drawPowerUpItem(p) {
   ctx.beginPath(); ctx.arc(p.x, y - 14, 7, Math.PI, 0); ctx.fill();
   // Glow
   ctx.strokeStyle = ctx.fillStyle;
-  ctx.globalAlpha = 0.2 + Math.sin(Date.now() / 200) * 0.2;
+  ctx.globalAlpha = 0.2 + Math.sin(t / 200) * 0.2;
   ctx.lineWidth = 2;
   ctx.beginPath(); ctx.arc(p.x, y, 14, 0, Math.PI * 2); ctx.stroke();
   ctx.restore();
@@ -819,25 +841,10 @@ function gameOver() {
   overlay.innerHTML = '<h2>MISSION FAILED</h2><p>SCORE: ' + String(score).padStart(6, '0') + '</p><p>HIGH SCORE: ' + String(hiScore).padStart(6, '0') + '</p><p>WAVE: ' + wave + '</p><p class="start-hint">PRESS SPACE TO RE-BOARD</p>';
 }
 
-let lastTime = 0, accumulator = 0;
+let lastTime = 0, accumulator = 0, pauseTime = 0;
 const TIMESTEP = 1000 / 60;
 
 function update() {
-  // Barrel roll input
-  if (shiftJustPressed && !player.rolling && player.rollCooldown <= 0) {
-    let dir = 0;
-    if (keys['ArrowLeft'] || keys['KeyA']) dir = -1;
-    else if (keys['ArrowRight'] || keys['KeyD']) dir = 1;
-    if (dir !== 0) {
-      player.rolling = true;
-      player.rollTimer = player.rollDuration;
-      player.rollDir = dir;
-      player.invincible = Math.max(player.invincible, player.rollDuration + 5);
-      playSound('roll');
-    }
-  }
-  shiftJustPressed = false;
-
   // Roll update
   if (player.rolling) {
     player.rollTimer--;
@@ -1022,16 +1029,16 @@ function playerHit() {
 }
 
 function draw() {
-  const t = Date.now();
+  const t = state === 'paused' ? pauseTime : Date.now();
   drawOcean(t);
   drawClouds();
   drawIslands();
 
   if (state === 'playing') {
-    for (const p of powerUps) drawPowerUpItem(p);
+    for (const p of powerUps) drawPowerUpItem(p, t);
     for (const b of bullets) drawBullet(b);
     for (const e of enemies) {
-      drawZero(e.x, e.y, e.type, e.hitFlash);
+      drawZero(e.x, e.y, e.type, e.hitFlash, null, t);
       if ((e.type === 'bomber' || e.type === 'ace' || e.boss) && e.hp < e.maxHp) {
         const barW = 30, barH = 3, hpR = e.hp / e.maxHp;
         ctx.fillStyle = '#222'; ctx.fillRect(e.x - barW / 2, e.y - (e.type === 'bomber' ? 16 : 22), barW, barH);
@@ -1040,7 +1047,7 @@ function draw() {
       }
     }
     for (const ex of explosions) drawExplosion(ex);
-    drawPlayerPlane(player.x, player.y, player.invincible > 0, player.rollAngle);
+    drawPlayerPlane(player.x, player.y, player.invincible > 0, player.rollAngle, t);
 
     // Roll cooldown indicator
     if (player.rollCooldown > 0) {
@@ -1095,10 +1102,14 @@ window.addEventListener('keydown', e => {
   if (e.code === 'KeyP') {
     if (state === 'playing') {
       state = 'paused';
+      pauseTime = performance.now();
       overlay.style.display = 'flex';
       overlay.innerHTML = '<h2>PAUSED</h2><p class="start-hint">PRESS P TO RESUME</p>';
     } else if (state === 'paused') {
-      state = 'playing'; overlay.style.display = 'none';
+      state = 'playing';
+      lastTime = performance.now();
+      accumulator = 0;
+      overlay.style.display = 'none';
     }
   }
 });
