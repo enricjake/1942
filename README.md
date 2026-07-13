@@ -9,7 +9,7 @@ A browser-based tribute to Capcom's classic 1984 arcade game **1942**.
 ## Play
 
 Open `index.html` in any modern browser, or play online at:
-**https://dork.github.io/1942/**
+**https://enricjake.github.io/1942/**
 
 ## Controls
 

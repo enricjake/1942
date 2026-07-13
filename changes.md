@@ -1,5 +1,10 @@
 # Changes
 
+## Documentation Update (2026-07-13)
+
+### Update
+- Corrected GitHub Pages URL from dork.github.io/1942 to enricjake.github.io/1942 in README.md and AGENTS.md
+
 ## Pause Bug Fix (2026-07-13)
 
 ### Problem

@@ -6,6 +6,7 @@ A single-file browser game: `index.html` (~1100 lines) is the **entire project**
 ## How to run / verify
 - Open `index.html` directly in a browser. There is no dev server, bundler, or `npm` step.
 - Deployed automatically via **GitHub Pages from the `main` branch** — pushing to `main` redeploys (see git history: "redeploy after enabling pages"). No separate deploy command.
+- Live URL: **https://enricjake.github.io/1942/**
 - No automated tests exist. Manual play in a browser is the only verification.
 
 ## Game architecture (non-obvious)
