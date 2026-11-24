@@ -2,6 +2,8 @@
 
 A browser-based tribute to Capcom's classic 1984 arcade game **1942**.
 
+![1942 gameplay](assets/gameplay.png)
+
 ![1942](https://img.shields.io/badge/-1942-cc3333?style=for-the-badge&logo=arcade&logoColor=white)
 ![HTML5 Canvas](https://img.shields.io/badge/HTML5-Canvas-e34c26?style=for-the-badge&logo=html5&logoColor=white)
 ![No Dependencies](https://img.shields.io/badge/No%20Dependencies-zero%20npm-green?style=for-the-badge)
